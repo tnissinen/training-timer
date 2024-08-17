@@ -14,6 +14,18 @@ class TimerApp:
         self.root = root
         self.root.title("Exercise Timer")
 
+        self.default_phases = [("Lämmittely", "02:00"),
+                               ("Etuheilautus", "02:00"),
+                               ("Rinnalleveto", "02:00"),
+                               ("OAJ", "02:00"),
+                               ("Etuheilautus", "01:00"),
+                               ("OALC", "02:00"),
+                               ("Etuheilautus", "01:00"),
+                               ("2xtempaus 1min tauolla", "05:00"),
+                               ("Etuheilautus", "01:00"),
+                               ("OALC", "02:00"),
+                               ("Etuheilautus", "02:00")]
+
         # Set the window size to be slightly smaller than the screen size
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -22,7 +34,7 @@ class TimerApp:
         # Define fonts for various UI elements
         self.timer_font = font.Font(size=80, weight='bold')
         self.medium_font = font.Font(size=30)
-        self.small_font = font.Font(size=20     )
+        self.small_font = font.Font(size=11)
 
         # Label to display the total time
         self.total_time_label = tk.Label(root, text="Total Time: 00:00/00:00", font=self.medium_font)
@@ -52,7 +64,7 @@ class TimerApp:
         self.num_phases_label = tk.Label(self.phase_frame, text="Number of Phases:", font=self.small_font)
         self.num_phases_label.grid(row=0, column=0, padx=10, pady=5)
         self.num_phases = tk.Entry(self.phase_frame, font=self.small_font, justify='center', width=5)
-        self.num_phases.insert(0, "3")
+        self.num_phases.insert(0, str(len(self.default_phases)))
         self.num_phases.grid(row=0, column=1, padx=10, pady=5)
 
         # Button to generate phase inputs
@@ -70,6 +82,7 @@ class TimerApp:
         # Start/Pause button
         self.start_pause_button = tk.Button(self.button_frame, text="Start", command=self.toggle_timer, font=self.medium_font, width=10)
         self.start_pause_button.pack(side=tk.LEFT, padx=10)
+        self.start_pause_button.config(state=tk.DISABLED)
 
         # Reset button
         self.reset_button = tk.Button(self.button_frame, text="Reset", command=self.reset_timer, font=self.medium_font, width=10)
@@ -87,6 +100,7 @@ class TimerApp:
         self.total_overall_time_str = "00:00"
         self.pause_start_time = None
 
+
     def generate_phase_inputs(self):
         for widget in self.phases_input_frame.winfo_children():
             widget.destroy()
@@ -95,23 +109,35 @@ class TimerApp:
         self.phases = []
 
         for i in range(num_phases):
+
+            # set phase text from default phases
+
+            if i < len(self.default_phases):
+                default_text = "{}:".format(self.default_phases[i][0])
+                default_value = self.default_phases[i][1]
+            else:
+                default_text = "{}:".format(self.default_phases[-1][0])
+                default_value = self.default_phases[-1][1]
+
             phase_name_label = tk.Label(self.phases_input_frame, text=f"Phase {i + 1} Name:", font=self.small_font)
             phase_name_label.grid(row=i, column=0, padx=10, pady=5)
 
             phase_name_entry = tk.Entry(self.phases_input_frame, font=self.small_font, width=15)
-            phase_name_entry.insert(0, f"Phase {i + 1}")
+            phase_name_entry.insert(0, default_text)
             phase_name_entry.grid(row=i, column=1, padx=10, pady=5)
 
-            phase_time_label = tk.Label(self.phases_input_frame, text="Time (MM:SS):", font=self.small_font)
+            phase_time_label = tk.Label(self.phases_input_frame, text="", font=self.small_font)
             phase_time_label.grid(row=i, column=2, padx=10, pady=5)
 
             phase_time_entry = tk.Entry(self.phases_input_frame, font=self.small_font, justify='center', width=10)
-            phase_time_entry.insert(0, "00:05")
+            phase_time_entry.insert(0, default_value)
             phase_time_entry.grid(row=i, column=3, padx=10, pady=5)
 
             self.phases.append((phase_name_entry, phase_time_entry))
 
         self.update_total_time()
+
+        self.start_pause_button.config(state=tk.NORMAL)
 
     def update_total_time(self):
         total_seconds = 0
@@ -185,7 +211,12 @@ class TimerApp:
         self.paused_time = 0
         self.total_paused_time = 0
         self.start_time = None
-        self.current_phase_duration = self.phase_list[self.current_phase_index][1]
+
+        if self.phase_list:
+            self.current_phase_duration = self.phase_list[self.current_phase_index][1]
+        else:
+            self.current_phase_duration = 0
+
         self.update_status()
 
     def update_status(self):
