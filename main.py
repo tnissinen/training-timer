@@ -14,6 +14,17 @@ class TimerApp:
         self.root = root
         self.root.title("Exercise Timer")
 
+        # Maximize the window by default
+        self.root.state('zoomed')
+
+        # Create a frame for the fullscreen toggle button
+        self.fullscreen_frame = tk.Frame(root)
+        self.fullscreen_frame.pack(side=tk.TOP, anchor=tk.NE, padx=10, pady=10)
+
+        # Add a small button to toggle fullscreen
+        self.fullscreen_button = tk.Button(self.fullscreen_frame, text="⛶", command=self.toggle_fullscreen, font=("Arial", 12))
+        self.fullscreen_button.pack()
+
         self.default_phases = [("Lämmittely", "02:00"),
                                ("Etuheilautus", "02:00"),
                                ("Rinnalleveto", "02:00"),
@@ -25,11 +36,6 @@ class TimerApp:
                                ("Etuheilautus", "01:00"),
                                ("OALC", "02:00"),
                                ("Etuheilautus", "02:00")]
-
-        # Set the window size to be slightly smaller than the screen size
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{screen_width - 200}x{screen_height - 200}")
 
         # Define fonts for various UI elements
         self.timer_font = font.Font(size=80, weight='bold')
@@ -87,6 +93,7 @@ class TimerApp:
         # Reset button
         self.reset_button = tk.Button(self.button_frame, text="Reset", command=self.reset_timer, font=self.medium_font, width=10)
         self.reset_button.pack(side=tk.LEFT, padx=10)
+        self.reset_button.config(state=tk.DISABLED)
 
         # Initialize timer state variables
         self.running = False
@@ -99,7 +106,7 @@ class TimerApp:
         self.current_phase_duration = 0
         self.total_overall_time_str = "00:00"
         self.pause_start_time = None
-
+        self.timer_active = False  # New variable to track if timer has been started
 
     def generate_phase_inputs(self):
         for widget in self.phases_input_frame.winfo_children():
@@ -113,13 +120,13 @@ class TimerApp:
             # set phase text from default phases
 
             if i < len(self.default_phases):
-                default_text = "{}:".format(self.default_phases[i][0])
+                default_text = "{}".format(self.default_phases[i][0])
                 default_value = self.default_phases[i][1]
             else:
-                default_text = "{}:".format(self.default_phases[-1][0])
+                default_text = "{}".format(self.default_phases[-1][0])
                 default_value = self.default_phases[-1][1]
 
-            phase_name_label = tk.Label(self.phases_input_frame, text=f"Phase {i + 1} Name:", font=self.small_font)
+            phase_name_label = tk.Label(self.phases_input_frame, text=f"{i + 1}", font=self.small_font)
             phase_name_label.grid(row=i, column=0, padx=10, pady=5)
 
             phase_name_entry = tk.Entry(self.phases_input_frame, font=self.small_font, width=15)
@@ -138,6 +145,8 @@ class TimerApp:
         self.update_total_time()
 
         self.start_pause_button.config(state=tk.NORMAL)
+        self.timer_active = False  # Reset timer_active when generating new phases
+        self.update_button_states()
 
     def update_total_time(self):
         total_seconds = 0
@@ -192,7 +201,9 @@ class TimerApp:
             else:
                 self.start_time = time.time()
             self.running = True
+            self.timer_active = True
             self.start_pause_button.config(text="Pause")
+            self.update_button_states()
             self.update_timer()
 
     def load_phases(self):
@@ -243,12 +254,15 @@ class TimerApp:
             self.total_paused_time = 0
             self.pause_start_time = None
             self.current_phase_index = 0
+            self.timer_active = False
+            self.update_button_states()
 
     def pause_timer(self):
         if self.running:
             self.running = False
             self.pause_start_time = time.time()
             self.start_pause_button.config(text="Start")
+            self.update_button_states()
 
     def reset_timer(self):
         self.running = False
@@ -263,6 +277,8 @@ class TimerApp:
         self.total_time_label.config(fg="black")
         self.current_phase_total_time_label.config(fg="black")
         self.start_pause_button.config(text="Start")
+        self.timer_active = False
+        self.update_button_states()
 
         if self.current_phase_index < len(self.phase_list):
             current_phase_total_minutes, current_phase_total_seconds = divmod(self.current_phase_duration, 60)
@@ -292,6 +308,7 @@ class TimerApp:
                     self.update_status()
             else:
                 self.root.after(1000, self.update_timer)
+                self.reset_button.config(state=tk.DISABLED)  # Ensure Reset button is disabled while running
 
         elif self.current_phase_index >= len(self.phase_list):
             self.total_time_label.config(fg="dark red")
@@ -299,6 +316,25 @@ class TimerApp:
             self.timer_label.config(fg="dark red")
 
             self.running = False
+
+    def toggle_fullscreen(self, event=None):
+        is_fullscreen = self.root.attributes('-fullscreen')
+        if is_fullscreen:
+            self.root.attributes('-fullscreen', False)
+            self.root.state('zoomed')
+            self.fullscreen_button.config(text="⛶")
+        else:
+            self.root.state('normal')
+            self.root.attributes('-fullscreen', True)
+            self.fullscreen_button.config(text="⯃")
+
+    def update_button_states(self):
+        if self.running or self.timer_active:
+            self.generate_button.config(state=tk.DISABLED)
+            self.reset_button.config(state=tk.DISABLED if self.running else tk.NORMAL)
+        else:
+            self.generate_button.config(state=tk.NORMAL)
+            self.reset_button.config(state=tk.DISABLED)
 
 
 if __name__ == "__main__":
