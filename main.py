@@ -303,7 +303,10 @@ class TimerApp:
             minutes, seconds = divmod(int(elapsed_time), 60)
             time_str = f"{minutes:02}:{seconds:02}"
 
-            self.timer_label.config(text=time_str)
+            self.timer_label.config(text=time_str, fg="dark green")
+            self.status_label.config(fg="dark green")
+            self.total_time_label.config(fg="dark green")
+            self.current_phase_total_time_label.config(fg="dark green")
             self.update_total_time()
 
             if elapsed_time >= self.current_phase_duration:
@@ -321,9 +324,10 @@ class TimerApp:
                 self.reset_button.config(state=tk.DISABLED)  # Ensure Reset button is disabled while running
 
         elif self.current_phase_index >= len(self.phases):
-            self.total_time_label.config(fg="dark red")
-            self.status_label.config(text="Finished", fg="dark red")
             self.timer_label.config(fg="dark red")
+            self.status_label.config(text="Finished", fg="dark red")
+            self.total_time_label.config(fg="dark red")
+            self.current_phase_total_time_label.config(fg="dark red")
             self.running = False
 
     def toggle_fullscreen(self, event=None):
