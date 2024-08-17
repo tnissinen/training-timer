@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import font
 import time
+import json
+from tkinter import messagebox, filedialog
+import os
 
 
 class TimerApp:
@@ -95,6 +98,18 @@ class TimerApp:
         self.reset_button.pack(side=tk.LEFT, padx=10)
         self.reset_button.config(state=tk.DISABLED)
 
+        # Create a frame for utility buttons
+        self.utility_frame = tk.Frame(root)
+        self.utility_frame.pack(side=tk.RIGHT, anchor=tk.NE, padx=10, pady=10)
+
+        # Add a small button to save phases
+        self.save_button = tk.Button(self.utility_frame, text="💾", command=self.save_phases, font=("Arial", 12))
+        self.save_button.pack(side=tk.TOP, pady=5)
+
+        # Add a small button to load phases
+        self.load_button = tk.Button(self.utility_frame, text="📂", command=self.load_phases, font=("Arial", 12))
+        self.load_button.pack(side=tk.TOP, pady=5)
+
         # Initialize timer state variables
         self.running = False
         self.start_time = None
@@ -116,14 +131,11 @@ class TimerApp:
         self.phases = []
 
         for i in range(num_phases):
-
-            # set phase text from default phases
-
             if i < len(self.default_phases):
-                default_text = "{}".format(self.default_phases[i][0])
+                default_text = self.default_phases[i][0]
                 default_value = self.default_phases[i][1]
             else:
-                default_text = "{}".format(self.default_phases[-1][0])
+                default_text = self.default_phases[-1][0]
                 default_value = self.default_phases[-1][1]
 
             phase_name_label = tk.Label(self.phases_input_frame, text=f"{i + 1}", font=self.small_font)
@@ -193,7 +205,6 @@ class TimerApp:
     def start_timer(self):
         if not self.running:
             if self.total_start_time is None:
-                self.load_phases()
                 self.total_start_time = time.time()
             if self.pause_start_time is not None:
                 self.paused_time += time.time() - self.pause_start_time
@@ -204,43 +215,42 @@ class TimerApp:
             self.timer_active = True
             self.start_pause_button.config(text="Pause")
             self.update_button_states()
+            self.current_phase_duration = self.get_current_phase_duration()
             self.update_timer()
 
     def load_phases(self):
-        self.phase_list = []
-        for name_entry, time_entry in self.phases:
-            name = name_entry.get()
-            time_input = time_entry.get()
-            try:
-                minutes, seconds = map(int, time_input.split(":"))
-                phase_seconds = minutes * 60 + seconds
-            except ValueError:
-                phase_seconds = 0
-            if phase_seconds > 0:
-                self.phase_list.append((name, phase_seconds))
-        self.current_phase_index = 0
-        self.paused_time = 0
-        self.total_paused_time = 0
-        self.start_time = None
+        file_path = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json")],
+            initialdir=os.path.dirname(__file__)
+        )
+        if not file_path:
+            return
 
-        if self.phase_list:
-            self.current_phase_duration = self.phase_list[self.current_phase_index][1]
-        else:
-            self.current_phase_duration = 0
+        try:
+            with open(file_path, "r") as f:
+                phases_data = json.load(f)
+            
+            self.num_phases.delete(0, tk.END)
+            self.num_phases.insert(0, str(len(phases_data)))
+            self.generate_phase_inputs()
 
-        self.update_status()
+            for i, phase in enumerate(phases_data):
+                self.phases[i][0].delete(0, tk.END)
+                self.phases[i][0].insert(0, phase["name"])
+                self.phases[i][1].delete(0, tk.END)
+                self.phases[i][1].insert(0, phase["time"])
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load phases: {str(e)}")
 
     def update_status(self):
-        if self.current_phase_index < len(self.phase_list):
-            current_phase_name = self.phase_list[self.current_phase_index][0]
+        if self.current_phase_index < len(self.phases):
+            current_phase_name = self.phases[self.current_phase_index][0].get()
             self.status_label.config(text=current_phase_name, fg="dark green")
             self.timer_label.config(fg="dark green")
             self.total_time_label.config(fg="dark green")
             self.current_phase_total_time_label.config(fg="dark green")
-
-            #current_phase_total_minutes, current_phase_total_seconds = divmod(self.current_phase_duration, 60)
-            #current_phase_total_time_str = f"Phase Total Time: {current_phase_total_minutes:02}:{current_phase_total_seconds:02}"
-            #self.current_phase_total_time_label.config(text=current_phase_total_time_str)
         else:
             self.status_label.config(text="Finished", fg="dark red")
             self.timer_label.config(fg="dark red")
@@ -280,7 +290,7 @@ class TimerApp:
         self.timer_active = False
         self.update_button_states()
 
-        if self.current_phase_index < len(self.phase_list):
+        if self.current_phase_index < len(self.phases):
             current_phase_total_minutes, current_phase_total_seconds = divmod(self.current_phase_duration, 60)
             current_phase_total_time_str = f"Phase Total Time: {current_phase_total_minutes:02}:{current_phase_total_seconds:02}"
             self.current_phase_total_time_label.config(text=current_phase_total_time_str)
@@ -288,7 +298,7 @@ class TimerApp:
         self.update_total_time()
 
     def update_timer(self):
-        if self.running and self.current_phase_index < len(self.phase_list):
+        if self.running and self.current_phase_index < len(self.phases):
             elapsed_time = time.time() - self.start_time - self.paused_time
             minutes, seconds = divmod(int(elapsed_time), 60)
             time_str = f"{minutes:02}:{seconds:02}"
@@ -298,8 +308,8 @@ class TimerApp:
 
             if elapsed_time >= self.current_phase_duration:
                 self.current_phase_index += 1
-                if self.current_phase_index < len(self.phase_list):
-                    self.current_phase_duration = self.phase_list[self.current_phase_index][1]
+                if self.current_phase_index < len(self.phases):
+                    self.current_phase_duration = self.get_current_phase_duration()
                     self.start_time = time.time()
                     self.paused_time = 0
                     self.update_status()
@@ -310,11 +320,10 @@ class TimerApp:
                 self.root.after(1000, self.update_timer)
                 self.reset_button.config(state=tk.DISABLED)  # Ensure Reset button is disabled while running
 
-        elif self.current_phase_index >= len(self.phase_list):
+        elif self.current_phase_index >= len(self.phases):
             self.total_time_label.config(fg="dark red")
             self.status_label.config(text="Finished", fg="dark red")
             self.timer_label.config(fg="dark red")
-
             self.running = False
 
     def toggle_fullscreen(self, event=None):
@@ -335,6 +344,54 @@ class TimerApp:
         else:
             self.generate_button.config(state=tk.NORMAL)
             self.reset_button.config(state=tk.DISABLED)
+
+    def save_phases(self):
+        phases_data = []
+        for name_entry, time_entry in self.phases:
+            name = name_entry.get().strip()
+            time = time_entry.get().strip()
+            
+            if not name or not time:
+                messagebox.showwarning("Invalid Data", "All phases must have a name and time.")
+                return
+            
+            if not self.is_valid_time(time):
+                messagebox.showwarning("Invalid Time", f"Invalid time format for phase '{name}'. Use MM:SS format.")
+                return
+            
+            phases_data.append({"name": name, "time": time})
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json")],
+            initialdir=os.path.dirname(__file__),
+            initialfile="saved_phases.json"
+        )
+
+        if file_path:
+            if os.path.exists(file_path):
+                if not messagebox.askyesno("Confirm Overwrite", "The file already exists. Do you want to overwrite it?"):
+                    return
+
+            try:
+                with open(file_path, "w") as f:
+                    json.dump(phases_data, f, indent=2)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save phases: {str(e)}")
+
+    def is_valid_time(self, time_str):
+        try:
+            minutes, seconds = map(int, time_str.split(":"))
+            return 0 <= minutes < 60 and 0 <= seconds < 60
+        except ValueError:
+            return False
+
+    def get_current_phase_duration(self):
+        if self.current_phase_index < len(self.phases):
+            time_str = self.phases[self.current_phase_index][1].get()
+            minutes, seconds = map(int, time_str.split(":"))
+            return minutes * 60 + seconds
+        return 0
 
 
 if __name__ == "__main__":
