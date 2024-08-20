@@ -4,9 +4,9 @@ class PhaseManager:
     def __init__(self):
         self.phases = []
         self.default_phases = [
-            ("Lämmittely", "02:00"),
-            ("Etuheilautus", "02:00"),
-            ("Rinnalleveto", "02:00"),
+            ("Lämmittely", "00:5"),
+            ("Etuheilautus", "00:5"),
+            ("Rinnalleveto", "00:5"),
             ("OAJ", "02:00"),
             ("Etuheilautus", "01:00"),
             ("OALC", "02:00"),
@@ -16,7 +16,6 @@ class PhaseManager:
             ("OALC", "02:00"),
             ("Etuheilautus", "02:00")
         ]
-        self.generate_default_phases()
 
     def load_phases(self, file_path):
         try:
@@ -38,8 +37,8 @@ class PhaseManager:
             print(f"Failed to save phases: {str(e)}")
             return False
 
-    def generate_default_phases(self):
-        self.phases = self.default_phases.copy()
+    def generate_default_phases(self, num_phases):
+        self.phases = self.default_phases[:num_phases].copy()
 
     def get_phase(self, index):
         if 0 <= index < len(self.phases):

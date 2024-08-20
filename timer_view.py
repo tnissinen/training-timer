@@ -85,10 +85,18 @@ class TimerView:
     def update_current_phase_total_time(self, time_str, color="black"):
         self.current_phase_total_time_label.config(text=f"Phase Total Time: {time_str}", fg=color)
 
-    def update_button_states(self, running):
-        self.start_pause_button.config(text="Pause" if running else "Start")
-        self.reset_button.config(state=tk.DISABLED if running else tk.NORMAL)
-        self.generate_button.config(state=tk.DISABLED if running else tk.NORMAL)
+    def update_button_states(self, running, has_phases):
+        start_state = tk.NORMAL if has_phases and not running else tk.DISABLED
+        pause_state = tk.NORMAL if has_phases and running else tk.DISABLED
+        reset_state = tk.NORMAL if has_phases and not running else tk.DISABLED
+        generate_state = tk.NORMAL if not running else tk.DISABLED
+
+        self.start_pause_button.config(
+            text="Pause" if running else "Start",
+            state=pause_state if running else start_state
+        )
+        self.reset_button.config(state=reset_state)
+        self.generate_button.config(state=generate_state)
 
     def create_phase_inputs(self, num_phases):
         for widget in self.phases_input_frame.winfo_children():
