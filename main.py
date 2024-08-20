@@ -1,6 +1,7 @@
 import tkinter as tk
 from timer_controller import TimerController
 
+# test
 def main():
     root = tk.Tk()
     app = TimerController(root)
