@@ -95,15 +95,17 @@ class TimerController:
 
         # Update total time display
         total_elapsed_time = self.model.get_total_elapsed_time()
-        total_minutes, total_seconds = divmod(int(total_elapsed_time), 60)
-        total_str = f"{total_minutes:02}:{total_seconds:02}"
 
-        total_time = sum(
-            int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
-        total_minutes, total_seconds = divmod(total_time, 60)
-        total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+        if total_elapsed_time is not None:
+            total_minutes, total_seconds = divmod(int(total_elapsed_time), 60)
+            total_str = f"{total_minutes:02}:{total_seconds:02}"
 
-        self.view.update_total_time_display(total_str, total_time_str, "dark green")
+            total_time = sum(
+                int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
+            total_minutes, total_seconds = divmod(total_time, 60)
+            total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+
+            self.view.update_total_time_display(total_str, total_time_str, "dark green")
 
         if elapsed_time >= self.model.current_phase_duration:
             self.model.next_phase()
