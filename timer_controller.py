@@ -4,9 +4,12 @@ from timer_model import TimerModel
 from phase_manager import PhaseManager
 from timer_view import TimerView
 
-
 class TimerController:
     def __init__(self, root):
+        """
+        Initializes the TimerController with the given root window.
+        :param root: The main window of the application.
+        """
         self.master = root
 
         self.model = TimerModel()
@@ -18,6 +21,9 @@ class TimerController:
         self.update_button_states()
 
     def bind_events(self):
+        """
+        Binds the control buttons to their respective event handlers.
+        """
         self.view.start_pause_button.config(command=self.toggle_timer)
         self.view.reset_button.config(command=self.reset_timer)
         self.view.save_button.config(command=self.save_phases)
@@ -26,6 +32,9 @@ class TimerController:
         self.view.fullscreen_button.config(command=self.toggle_fullscreen)
 
     def toggle_timer(self):
+        """
+        Toggles the timer between running and paused states.
+        """
         if not self.model.running:
             self.model.current_phase_duration = self.get_current_phase_duration()
             self.model.start()
@@ -36,11 +45,17 @@ class TimerController:
         self.update_view()
 
     def reset_timer(self):
+        """
+        Resets the timer to its initial state.
+        """
         self.model.reset()
         self.update_view()
         self.update_button_states()
 
     def save_phases(self):
+        """
+        Saves the phases to a JSON file.
+        """
         phases = self.view.get_phase_inputs()
         if not self.validate_phases(phases):
             return
@@ -54,6 +69,9 @@ class TimerController:
                 messagebox.showerror("Error", "Failed to save phases.")
 
     def load_phases(self):
+        """
+        Loads phases from a JSON file and updates the view.
+        """
         file_path = filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if file_path:
             if self.phase_manager.load_phases(file_path):
@@ -65,6 +83,9 @@ class TimerController:
                 messagebox.showerror("Error", "Failed to load phases.")
 
     def generate_phases(self, is_default=True):
+        """
+        Generates the specified number of phases and updates the view.
+        """
         try:
             num_phases = int(self.view.num_phases_entry.get())
             self.view.create_phase_inputs(num_phases)
@@ -76,7 +97,11 @@ class TimerController:
         except ValueError:
             messagebox.showerror("Error", "Invalid number of phases.")
 
+
     def toggle_fullscreen(self):
+        """
+        Toggles the fullscreen mode of the application window.
+        """
         is_fullscreen = self.view.master.attributes('-fullscreen')
         if is_fullscreen:
             self.view.master.attributes('-fullscreen', False)
@@ -88,6 +113,9 @@ class TimerController:
             self.view.fullscreen_button.config(text="⯃")
 
     def update_timer(self):
+        """
+        Updates the timer display and handles phase transitions.
+        """
         elapsed_time = self.model.get_elapsed_time()
         minutes, seconds = divmod(int(elapsed_time), 60)
         time_str = f"{minutes:02}:{seconds:02}"
@@ -119,12 +147,18 @@ class TimerController:
         self.master.after(100, self.update_timer)
 
     def finish_timer(self):
+        """
+        Stops the timer and updates the display to indicate the timer has finished.
+        """
         self.model.running = False
         self.view.update_timer_display("00:00", "dark red")
         self.view.update_phase_display("Finished", "dark red")
         self.view.update_button_states(False, len(self.phase_manager.phases) > 0)
 
     def update_view(self):
+        """
+        Updates the view with the current phase and total time information.
+        """
         if self.model.running:
             current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
             if current_phase:
@@ -142,9 +176,15 @@ class TimerController:
         elapsed_str = f"{elapsed_minutes:02}:{elapsed_seconds:02}"
 
         self.view.update_total_time_display(elapsed_str, total_str, "dark green" if self.model.running else "black")
-        self.update_button_states()  # Replace the direct call to view.update_button_states with this
+        self.update_button_states()
 
     def get_current_phase_duration(self):
+        """
+        Retrieves the duration of the current phase.
+
+        Returns:
+            int: The duration of the current phase in seconds.
+        """
         current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
         if current_phase:
             minutes, seconds = map(int, current_phase[1].split(":"))
@@ -152,6 +192,15 @@ class TimerController:
         return 0
 
     def validate_phases(self, phases):
+        """
+        Validates the provided phases.
+
+        Args:
+            phases (list): A list of tuples containing phase names and times.
+
+        Returns:
+            bool: True if all phases are valid, False otherwise.
+        """
         for name, time in phases:
             if not name or not time:
                 messagebox.showwarning("Invalid Data", "All phases must have a name and time.")
@@ -162,6 +211,15 @@ class TimerController:
         return True
 
     def is_valid_time(self, time_str):
+        """
+        Checks if the provided time string is in a valid MM:SS format.
+
+        Args:
+            time_str (str): The time string to validate.
+
+        Returns:
+            bool: True if the time string is valid, False otherwise.
+        """
         try:
             minutes, seconds = map(int, time_str.split(":"))
             return 0 <= minutes < 60 and 0 <= seconds < 60
@@ -169,6 +227,9 @@ class TimerController:
             return False
 
     def update_button_states(self):
+        """
+        Updates the states of the control buttons based on the timer's state.
+        """
         has_phases = len(self.phase_manager.phases) > 0
         is_running = self.model.running
         self.view.update_button_states(is_running, has_phases)
