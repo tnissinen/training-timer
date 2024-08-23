@@ -172,10 +172,12 @@ class TimerController:
         total_str = f"{total_minutes:02}:{total_seconds:02}"
 
         elapsed_time = self.model.get_total_elapsed_time()
-        elapsed_minutes, elapsed_seconds = divmod(int(elapsed_time), 60)
-        elapsed_str = f"{elapsed_minutes:02}:{elapsed_seconds:02}"
+        if elapsed_time is not None:
+            elapsed_minutes, elapsed_seconds = divmod(int(elapsed_time), 60)
+            elapsed_str = f"{elapsed_minutes:02}:{elapsed_seconds:02}"
 
-        self.view.update_total_time_display(elapsed_str, total_str, "dark green" if self.model.running else "black")
+            self.view.update_total_time_display(elapsed_str, total_str, "dark green" if self.model.running else "black")
+
         self.update_button_states()
 
     def get_current_phase_duration(self):
