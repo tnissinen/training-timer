@@ -24,12 +24,12 @@ class TimerController:
         """
         Binds the control buttons to their respective event handlers.
         """
-        self.view.start_pause_button.config(command=self.toggle_timer)
-        self.view.reset_button.config(command=self.reset_timer)
-        self.view.save_button.config(command=self.save_phases)
-        self.view.load_button.config(command=self.load_phases)
-        self.view.generate_button.config(command=self.generate_phases)
-        self.view.fullscreen_button.config(command=self.toggle_fullscreen)
+        self.view.start_pause_button.configure(command=self.toggle_timer)
+        self.view.reset_button.configure(command=self.reset_timer)
+        self.view.save_button.configure(command=self.save_phases)
+        self.view.load_button.configure(command=self.load_phases)
+        self.view.generate_button.configure(command=self.generate_phases)
+        self.view.fullscreen_button.configure(command=self.toggle_fullscreen)
 
     def toggle_timer(self):
         """
@@ -51,6 +51,8 @@ class TimerController:
         self.model.reset()
         self.update_view()
         self.update_button_states()
+        self.view.update_timer_display("00:00", "white")
+        self.view.update_phase_display("", "white")
 
     def save_phases(self):
         """
@@ -106,52 +108,54 @@ class TimerController:
         if is_fullscreen:
             self.view.master.attributes('-fullscreen', False)
             self.view.master.state('zoomed')
-            self.view.fullscreen_button.config(text="⛶")
+            self.view.fullscreen_button.configure(text="⛶")
         else:
             self.view.master.state('normal')
             self.view.master.attributes('-fullscreen', True)
-            self.view.fullscreen_button.config(text="⯃")
+            self.view.fullscreen_button.configure(text="⯃")
 
     def update_timer(self):
         """
         Updates the timer display and handles phase transitions.
         """
-        elapsed_time = self.model.get_elapsed_time()
-        minutes, seconds = divmod(int(elapsed_time), 60)
-        time_str = f"{minutes:02}:{seconds:02}"
-        self.view.update_timer_display(time_str, "dark green")
+        if self.model.running:
 
-        # Update total time display
-        total_elapsed_time = self.model.get_total_elapsed_time()
+            elapsed_time = self.model.get_elapsed_time()
+            minutes, seconds = divmod(int(elapsed_time), 60)
+            time_str = f"{minutes:02}:{seconds:02}"
+            self.view.update_timer_display(time_str, "dark green")
 
-        if total_elapsed_time is not None:
-            total_minutes, total_seconds = divmod(int(total_elapsed_time), 60)
-            total_str = f"{total_minutes:02}:{total_seconds:02}"
+            # Update total time display
+            total_elapsed_time = self.model.get_total_elapsed_time()
 
-            total_time = sum(
-                int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
-            total_minutes, total_seconds = divmod(total_time, 60)
-            total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+            if total_elapsed_time is not None:
+                total_minutes, total_seconds = divmod(int(total_elapsed_time), 60)
+                total_str = f"{total_minutes:02}:{total_seconds:02}"
 
-            self.view.update_total_time_display(total_str, total_time_str, "dark green")
+                total_time = sum(
+                    int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
+                total_minutes, total_seconds = divmod(total_time, 60)
+                total_time_str = f"{total_minutes:02}:{total_seconds:02}"
 
-        if elapsed_time >= self.model.current_phase_duration:
-            self.model.next_phase()
-            if self.model.current_phase_index < len(self.phase_manager.phases):
-                self.model.current_phase_duration = self.get_current_phase_duration()
-                self.update_view()
-            else:
-                self.finish_timer()
+                self.view.update_total_time_display(total_str, total_time_str, "dark green")
 
-        self.update_button_states()
-        self.master.after(100, self.update_timer)
+            if elapsed_time >= self.model.current_phase_duration:
+                self.model.next_phase()
+                if self.model.current_phase_index < len(self.phase_manager.phases):
+                    self.model.current_phase_duration = self.get_current_phase_duration()
+                    self.update_view()
+                else:
+                    self.finish_timer()
+
+            #self.update_button_states()
+            self.master.after(100, self.update_timer)
 
     def finish_timer(self):
         """
         Stops the timer and updates the display to indicate the timer has finished.
         """
         self.model.running = False
-        self.view.update_timer_display("00:00", "dark red")
+        self.view.update_timer_color("dark red")
         self.view.update_phase_display("Finished", "dark red")
         self.view.update_button_states(False, len(self.phase_manager.phases) > 0)
 
@@ -162,9 +166,11 @@ class TimerController:
         if self.model.running:
             current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
             if current_phase:
-                self.view.update_phase_display(current_phase[0], "dark green")
+                self.view.update_phase_display(current_phase[0], "dark green" if self.model.running else "white")
                 minutes, seconds = divmod(self.model.current_phase_duration, 60)
                 self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "dark green")
+        else:
+            self.view.update_timer_color("white")
 
         total_time = sum(
             int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
@@ -176,7 +182,7 @@ class TimerController:
             elapsed_minutes, elapsed_seconds = divmod(int(elapsed_time), 60)
             elapsed_str = f"{elapsed_minutes:02}:{elapsed_seconds:02}"
 
-            self.view.update_total_time_display(elapsed_str, total_str, "dark green" if self.model.running else "black")
+            self.view.update_total_time_display(elapsed_str, total_str, "dark green")
 
         self.update_button_states()
 
