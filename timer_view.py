@@ -13,6 +13,7 @@ class TimerView:
         self.master.state('zoomed')
 
         self.timer_font = ctk.CTkFont(size=80, weight='bold')
+        self.big_font = ctk.CTkFont(size=66)
         self.medium_font = ctk.CTkFont(size=36)
         self.semismall_font = ctk.CTkFont(size=26)
         self.small_font = ctk.CTkFont(size=12)
@@ -47,13 +48,13 @@ class TimerView:
         self.current_phase_frame = ctk.CTkFrame(self.master, fg_color="transparent")
         self.current_phase_frame.pack(expand=True, pady=0)
 
-        self.status_label = ctk.CTkLabel(self.current_phase_frame, text="", font=self.medium_font)
+        self.status_label = ctk.CTkLabel(self.current_phase_frame, text="", font=self.big_font)
         self.status_label.pack()
 
         self.timer_label = ctk.CTkLabel(self.current_phase_frame, text="00:00", font=self.timer_font)
         self.timer_label.pack()
 
-        self.current_phase_total_time_label = ctk.CTkLabel(self.current_phase_frame, text="Phase Total Time: 00:00",
+        self.current_phase_total_time_label = ctk.CTkLabel(self.current_phase_frame, text="/00:00",
                                                            font=self.medium_font)
         self.current_phase_total_time_label.pack()
 
@@ -132,7 +133,7 @@ class TimerView:
             color (str): The color of the text.
         """
 
-        self.current_phase_total_time_label.configure(text=f"Phase Total Time: {time_str}")
+        self.current_phase_total_time_label.configure(text=f"/{time_str}")
 
     def update_button_states(self, running, has_phases):
         """

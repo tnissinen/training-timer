@@ -177,7 +177,7 @@ class TestTimerView(unittest.TestCase):
 
     def test_update_current_phase_total_time(self):
         self.view.update_current_phase_total_time("01:00", "red")
-        self.assertEqual(self.view.current_phase_total_time_label.cget("text"), "Phase Total Time: 01:00")
+        self.assertEqual(self.view.current_phase_total_time_label.cget("text"), "/01:00")
         self.assertEqual(self.view.current_phase_total_time_label.cget("fg"), "red")
 
     def test_create_phase_inputs(self):

@@ -7,9 +7,9 @@ class PhaseManager:
         """
         self.phases = []
         self.default_phases = [
-            ("Lämmittely", "00:5"),
-            ("Etuheilautus", "00:5"),
-            ("Rinnalleveto", "00:5"),
+            ("Lämmittely", "02:00"),
+            ("Etuheilautus", "02:00"),
+            ("Rinnalleveto", "02:00"),
             ("OAJ", "02:00"),
             ("Etuheilautus", "01:00"),
             ("OALC", "02:00"),
