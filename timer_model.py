@@ -78,6 +78,7 @@ class TimerModel:
             return time.time() - self.total_start_time - self.total_paused_time
         elif self.pause_start_time:
             return self.pause_start_time - self.total_start_time - self.total_paused_time
+        return 0
 
     def next_phase(self):
         """

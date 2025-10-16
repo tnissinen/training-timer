@@ -31,7 +31,7 @@ class PhaseManager:
             bool: True if phases were loaded successfully, False otherwise.
         """
         try:
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 phases_data = json.load(f)
             self.phases = [(phase["name"], phase["time"]) for phase in phases_data]
             return True
@@ -51,8 +51,8 @@ class PhaseManager:
         """
         try:
             phases_data = [{"name": name, "time": time} for name, time in self.phases]
-            with open(file_path, "w") as f:
-                json.dump(phases_data, f, indent=2)
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(phases_data, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
             print(f"Failed to save phases: {str(e)}")

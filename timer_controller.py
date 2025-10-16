@@ -36,9 +36,16 @@ class TimerController:
         Toggles the timer between running and paused states.
         """
         if not self.model.running:
+            # Update phase_manager.phases from current input fields before starting
+            if hasattr(self.view, 'phase_inputs') and self.view.phase_inputs:
+                phases = self.view.get_phase_inputs()
+                if self.validate_phases(phases):
+                    self.phase_manager.phases = phases
+                else:
+                    return  # Don't start timer if phases are invalid
+
             self.model.current_phase_duration = self.get_current_phase_duration()
             self.model.start()
-            self.update_timer()
             self.master.after(100, self.update_timer)  # Schedule the next update
         else:
             self.model.pause()
@@ -48,16 +55,35 @@ class TimerController:
         """
         Resets the timer to its initial state.
         """
+        # Update phase_manager.phases from current input fields before resetting
+        if hasattr(self.view, 'phase_inputs') and self.view.phase_inputs:
+            phases = self.view.get_phase_inputs()
+            if self.validate_phases(phases):
+                self.phase_manager.phases = phases
+
         self.model.reset()
         self.update_view()
         self.update_button_states()
         self.view.update_timer_display("00:00", "white")
-        self.view.update_phase_display("", "white")
+
+        # Display first phase information after reset
+        if len(self.phase_manager.phases) > 0:
+            first_phase = self.phase_manager.get_phase(0)
+            if first_phase:
+                self.view.update_phase_display(first_phase[0], "white")
+                minutes, seconds = map(int, first_phase[1].split(":"))
+                self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
+        else:
+            self.view.update_phase_display("", "white")
 
     def save_phases(self):
         """
         Saves the phases to a JSON file.
         """
+        # Check if phase inputs exist
+        if not hasattr(self.view, 'phase_inputs') or not self.view.phase_inputs:
+            return
+
         phases = self.view.get_phase_inputs()
         if not self.validate_phases(phases):
             return
@@ -65,10 +91,7 @@ class TimerController:
         file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if file_path:
             self.phase_manager.phases = phases
-            if self.phase_manager.save_phases(file_path):
-                messagebox.showinfo("Success", "Phases saved successfully!")
-            else:
-                messagebox.showerror("Error", "Failed to save phases.")
+            self.phase_manager.save_phases(file_path)
 
     def load_phases(self):
         """
@@ -77,12 +100,29 @@ class TimerController:
         file_path = filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if file_path:
             if self.phase_manager.load_phases(file_path):
+                # Validate loaded phases
+                if not self.validate_phases(self.phase_manager.phases):
+                    self.phase_manager.phases = []  # Clear invalid phases
+                    return
+
+                # Update UI with loaded phase count and generate inputs
                 self.view.num_phases_entry.delete(0, tk.END)
                 self.view.num_phases_entry.insert(0, str(len(self.phase_manager.phases)))
                 self.generate_phases(is_default=False)
-                messagebox.showinfo("Success", "Phases loaded successfully!")
-            else:
-                messagebox.showerror("Error", "Failed to load phases.")
+
+                # Reset timer after inputs are created
+                self.model.reset()
+                self.update_view()
+                self.update_button_states()
+                self.view.update_timer_display("00:00", "white")
+
+                # Display first phase information
+                if len(self.phase_manager.phases) > 0:
+                    first_phase = self.phase_manager.get_phase(0)
+                    if first_phase:
+                        self.view.update_phase_display(first_phase[0], "white")
+                        minutes, seconds = map(int, first_phase[1].split(":"))
+                        self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
 
     def generate_phases(self, is_default=True):
         """
@@ -90,6 +130,11 @@ class TimerController:
         """
         try:
             num_phases = int(self.view.num_phases_entry.get())
+
+            # Reset timer when generating new phases
+            if is_default:  # Only reset when generating default phases (not when loading)
+                self.reset_timer()
+
             self.view.create_phase_inputs(num_phases)
             if is_default:
                 self.phase_manager.generate_default_phases(num_phases)
@@ -97,7 +142,7 @@ class TimerController:
             self.update_view()
             self.update_button_states()
         except ValueError:
-            messagebox.showerror("Error", "Invalid number of phases.")
+            pass  # Silently ignore invalid input
 
 
     def toggle_fullscreen(self):
@@ -132,12 +177,15 @@ class TimerController:
                 total_minutes, total_seconds = divmod(int(total_elapsed_time), 60)
                 total_str = f"{total_minutes:02}:{total_seconds:02}"
 
-                total_time = sum(
-                    int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
-                total_minutes, total_seconds = divmod(total_time, 60)
-                total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+                try:
+                    total_time = sum(
+                        int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
+                    total_minutes, total_seconds = divmod(total_time, 60)
+                    total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+                except (ValueError, IndexError):
+                    total_time_str = "00:00"
 
-                self.view.update_total_time_display(total_str, total_time_str, "dark green")
+                self.view.update_total_time_display(total_str, total_time_str, "white")
 
             if elapsed_time >= self.model.current_phase_duration:
                 self.model.next_phase()
@@ -147,7 +195,6 @@ class TimerController:
                 else:
                     self.finish_timer()
 
-            #self.update_button_states()
             self.master.after(100, self.update_timer)
 
     def finish_timer(self):
@@ -166,23 +213,26 @@ class TimerController:
         if self.model.running:
             current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
             if current_phase:
-                self.view.update_phase_display(current_phase[0], "dark green" if self.model.running else "white")
+                self.view.update_phase_display(current_phase[0], "dark green")
                 minutes, seconds = divmod(self.model.current_phase_duration, 60)
-                self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "dark green")
+                self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
         else:
             self.view.update_timer_color("white")
 
-        total_time = sum(
-            int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
-        total_minutes, total_seconds = divmod(total_time, 60)
-        total_str = f"{total_minutes:02}:{total_seconds:02}"
+        try:
+            total_time = sum(
+                int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
+            total_minutes, total_seconds = divmod(total_time, 60)
+            total_str = f"{total_minutes:02}:{total_seconds:02}"
+        except (ValueError, IndexError):
+            total_str = "00:00"
 
         elapsed_time = self.model.get_total_elapsed_time()
         if elapsed_time is not None:
             elapsed_minutes, elapsed_seconds = divmod(int(elapsed_time), 60)
             elapsed_str = f"{elapsed_minutes:02}:{elapsed_seconds:02}"
 
-            self.view.update_total_time_display(elapsed_str, total_str, "dark green")
+            self.view.update_total_time_display(elapsed_str, total_str, "white")
 
         self.update_button_states()
 
@@ -211,10 +261,8 @@ class TimerController:
         """
         for name, time in phases:
             if not name or not time:
-                messagebox.showwarning("Invalid Data", "All phases must have a name and time.")
                 return False
             if not self.is_valid_time(time):
-                messagebox.showwarning("Invalid Time", f"Invalid time format for phase '{name}'. Use MM:SS format.")
                 return False
         return True
 
@@ -230,7 +278,7 @@ class TimerController:
         """
         try:
             minutes, seconds = map(int, time_str.split(":"))
-            return 0 <= minutes < 60 and 0 <= seconds < 60
+            return minutes >= 0 and 0 <= seconds < 60
         except ValueError:
             return False
 

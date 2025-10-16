@@ -111,7 +111,7 @@ class TimerView:
             phase_name (str): The name of the current phase.
             color (str): The color of the text.
         """
-        self.status_label.configure(text=phase_name)
+        self.status_label.configure(text=phase_name, text_color=color)
 
     def update_total_time_display(self, elapsed_str, total_str, color="black"):
         """
@@ -122,7 +122,7 @@ class TimerView:
             total_str (str): The total time string.
             color (str): The color of the text.
         """
-        self.total_time_label.configure(text=f"Total Time: {elapsed_str}/{total_str}")
+        self.total_time_label.configure(text=f"Total Time: {elapsed_str}/{total_str}", text_color=color)
 
     def update_current_phase_total_time(self, time_str, color="black"):
         """
@@ -133,7 +133,7 @@ class TimerView:
             color (str): The color of the text.
         """
 
-        self.current_phase_total_time_label.configure(text=f"/{time_str}")
+        self.current_phase_total_time_label.configure(text=f"/{time_str}", text_color=color)
 
     def update_button_states(self, running, has_phases):
         """
