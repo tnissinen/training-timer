@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import winsound
+import time
 from timer_model import TimerModel
 from phase_manager import PhaseManager
 from timer_view import TimerView
@@ -17,6 +18,9 @@ class TimerController:
         self.phase_manager = PhaseManager()
         self.view = TimerView(root)
         self.sound_enabled = False  # Sound is disabled by default
+
+        # Set callback for when phases are changed in the view
+        self.view.on_phases_changed_callback = self.bind_phase_jump_events
 
         self.bind_events()
         self.update_view()
@@ -43,6 +47,14 @@ class TimerController:
         self.master.bind('<r>', lambda e: self.reset_timer() if not self.view.edit_mode else None)
         self.master.bind('<R>', lambda e: self.reset_timer() if not self.view.edit_mode else None)
         self.master.bind('<F11>', lambda e: self.toggle_fullscreen())
+
+    def bind_phase_jump_events(self):
+        """
+        Binds click events to phase number labels for jumping to phases.
+        """
+        if hasattr(self.view, 'phase_number_labels'):
+            for i, label in enumerate(self.view.phase_number_labels):
+                label.bind("<Button-1>", lambda e, phase_idx=i: self.jump_to_phase(phase_idx))
 
     def toggle_timer(self):
         """
@@ -134,6 +146,8 @@ class TimerController:
                 self.update_view()
                 self.update_button_states()
                 self.view.update_timer_display("00:00", "white")
+                self.view.update_progress_bar(0)  # Reset progress bar
+                self.view.update_current_phase_indicator(-1)  # Hide indicator
 
                 # Display first phase information
                 if len(self.phase_manager.phases) > 0:
@@ -159,10 +173,66 @@ class TimerController:
                 self.phase_manager.generate_default_phases(num_phases)
             self.view.set_phase_inputs(self.phase_manager.phases[:num_phases])
             self.view.update_entry_states()  # Set readonly/normal based on edit_mode
+            self.bind_phase_jump_events()  # Bind click events to phase numbers
             self.update_view()
             self.update_button_states()
         except ValueError:
             pass  # Silently ignore invalid input
+
+    def jump_to_phase(self, phase_index):
+        """
+        Jumps to a specific phase during the workout.
+
+        Args:
+            phase_index (int): The index of the phase to jump to.
+        """
+        # Don't allow jumping in edit mode
+        if self.view.edit_mode:
+            return
+
+        # Validate phase index
+        if phase_index < 0 or phase_index >= len(self.phase_manager.phases):
+            return
+
+        # Calculate total elapsed time up to the beginning of this phase
+        elapsed_before_phase = 0
+        for i in range(phase_index):
+            phase = self.phase_manager.get_phase(i)
+            if phase:
+                minutes, seconds = map(int, phase[1].split(":"))
+                elapsed_before_phase += minutes * 60 + seconds
+
+        # Check if timer has been started at all
+        was_running = self.model.running
+        timer_was_started = self.model.total_start_time is not None
+
+        # If timer hasn't been started yet, initialize it but keep it paused
+        if not timer_was_started:
+            self.model.total_start_time = time.time()
+            self.model.phase_start_time = time.time()
+            self.model.running = False
+            self.model.pause_start_time = time.time()
+
+        # Update model to new phase with adjusted total time
+        self.model.jump_to_phase(phase_index, elapsed_before_phase)
+        self.model.current_phase_duration = self.get_current_phase_duration()
+
+        # Update the view
+        self.update_view()
+        self.view.update_progress_bar(0)  # Reset progress bar for new phase
+        self.view.update_current_phase_indicator(phase_index)
+
+        # Display the current phase information
+        current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
+        if current_phase:
+            color = "#00ff41" if was_running else "white"
+            self.view.update_phase_display(current_phase[0], color)
+            minutes, seconds = map(int, current_phase[1].split(":"))
+            self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
+
+        # Update timer display
+        if not was_running:
+            self.view.update_timer_display("00:00", "white")
 
 
     def toggle_fullscreen(self):
@@ -231,10 +301,11 @@ class TimerController:
         Stops the timer and updates the display to indicate the timer has finished.
         """
         self.model.running = False
+        self.model.finished = True
         self.play_sound()  # Play sound when timer finishes
         self.view.update_timer_color("#ff0051")
         self.view.update_phase_display("Finished", "#ff0051")
-        self.view.update_button_states(False, len(self.phase_manager.phases) > 0)
+        self.update_button_states()  # Update button states based on finished state
         self.view.update_current_phase_indicator(-1)  # Hide indicator when finished
 
     def update_view(self):
@@ -324,7 +395,8 @@ class TimerController:
         """
         has_phases = len(self.phase_manager.phases) > 0
         is_running = self.model.running
-        self.view.update_button_states(is_running, has_phases)
+        is_finished = self.model.finished
+        self.view.update_button_states(is_running, has_phases, is_finished)
 
     def play_sound(self):
         """

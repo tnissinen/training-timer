@@ -30,6 +30,7 @@ class TimerView:
         self.basic_button_width = 140
         self.button_height = 50
         self.edit_mode = False  # Edit mode is off by default
+        self.timer_running = False  # Track if timer is running
 
         self.create_widgets()
         self.bind_focus_events()
@@ -218,20 +219,24 @@ class TimerView:
         if hasattr(self, 'phase_indicators'):
             for i, indicator in enumerate(self.phase_indicators):
                 if i == phase_index:
-                    indicator.configure(text="▶")
+                    indicator.configure(text="▶", text_color=self.accent_color)
                 else:
                     indicator.configure(text="")
 
-    def update_button_states(self, running, has_phases):
+    def update_button_states(self, running, has_phases, finished=False):
         """
         Updates the states of the control buttons based on the timer's state.
 
         Args:
             running (bool): Whether the timer is currently running.
             has_phases (bool): Whether there are phases defined.
+            finished (bool): Whether the timer has finished all phases.
         """
+        # Track running state for hover effects
+        self.timer_running = running
 
-        start_state = ctk.NORMAL if has_phases and not running else ctk.DISABLED
+        # Start button should be disabled if finished or no phases
+        start_state = ctk.NORMAL if has_phases and not running and not finished else ctk.DISABLED
         pause_state = ctk.NORMAL if has_phases and running else ctk.DISABLED
         reset_state = ctk.NORMAL if has_phases and not running else ctk.DISABLED
         generate_state = ctk.NORMAL if not running else ctk.DISABLED
@@ -257,6 +262,7 @@ class TimerView:
         self.phase_inputs = []
         self.remove_buttons = []
         self.phase_indicators = []
+        self.phase_number_labels = []
 
         for i in range(num_phases):
             # Indicator for current phase (initially invisible)
@@ -266,9 +272,33 @@ class TimerView:
             indicator.configure(text="")  # Start hidden
             self.phase_indicators.append(indicator)
 
+            # Phase number label - make it look clickable
             phase_name_label = ctk.CTkLabel(self.phases_input_frame, text=f"{i + 1}", font=self.small_font,
-                                           text_color=self.text_color, width=30)
+                                           text_color=self.text_color, width=30, cursor="hand2")
             phase_name_label.grid(row=i, column=1, padx=8, pady=8)
+
+            # Add hover effect to show it's clickable
+            def on_enter(event, label=phase_name_label, idx=i):
+                # Show hover indicator (green if running, gray if not)
+                if hasattr(self, 'phase_indicators') and idx < len(self.phase_indicators):
+                    current_indicator_text = self.phase_indicators[idx].cget("text")
+                    # Only show hover indicator if not already showing active indicator
+                    if current_indicator_text != "▶":
+                        hover_color = self.accent_color if self.timer_running else "#888888"
+                        self.phase_indicators[idx].configure(text="▷", text_color=hover_color)
+
+            def on_leave(event, label=phase_name_label, idx=i):
+                # Hide hover indicator
+                if hasattr(self, 'phase_indicators') and idx < len(self.phase_indicators):
+                    current_indicator_text = self.phase_indicators[idx].cget("text")
+                    # Only hide if it's the hover indicator, not the active one (green filled arrow)
+                    if current_indicator_text == "▷":
+                        self.phase_indicators[idx].configure(text="")
+
+            phase_name_label.bind("<Enter>", on_enter)
+            phase_name_label.bind("<Leave>", on_leave)
+
+            self.phase_number_labels.append(phase_name_label)
 
             # Create entries - always as normal (we'll manage editability ourselves)
             phase_name_entry = ctk.CTkEntry(self.phases_input_frame, font=self.small_font, width=200,
@@ -460,3 +490,7 @@ class TimerView:
 
             # Restore the remaining phase data
             self.set_phase_inputs(current_phases)
+
+            # Trigger callback to rebind phase jump events
+            if hasattr(self, 'on_phases_changed_callback') and self.on_phases_changed_callback:
+                self.on_phases_changed_callback()

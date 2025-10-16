@@ -6,6 +6,7 @@ class TimerModel:
         Initializes the TimerModel with default values.
         """
         self.running = False
+        self.finished = False
         self.phase_start_time = None
         self.total_start_time = None
         self.phase_paused_time = 0
@@ -42,6 +43,7 @@ class TimerModel:
         Resets the timer to its initial state.
         """
         self.running = False
+        self.finished = False
         self.phase_start_time = None
         self.total_start_time = None
         self.phase_paused_time = 0
@@ -87,3 +89,28 @@ class TimerModel:
         self.current_phase_index += 1
         self.phase_start_time = time.time()
         self.phase_paused_time = 0
+
+    def jump_to_phase(self, phase_index, elapsed_before_phase=0):
+        """
+        Jumps to a specific phase and resets the phase timer.
+        Adjusts the total elapsed time to account for skipped phases.
+
+        Args:
+            phase_index (int): The index of the phase to jump to.
+            elapsed_before_phase (float): Total duration of all phases before this one in seconds.
+        """
+        self.finished = False  # Clear finished state when jumping
+        self.current_phase_index = phase_index
+        self.phase_start_time = time.time()
+        self.phase_paused_time = 0
+
+        # Adjust total time tracking to reflect jumping to this phase
+        if self.total_start_time is not None:
+            # Reset total_start_time and total_paused_time to make elapsed time = elapsed_before_phase
+            current_time = time.time()
+            self.total_start_time = current_time - elapsed_before_phase
+            self.total_paused_time = 0
+
+            # If paused, update pause_start_time relative to new total_start_time
+            if self.pause_start_time is not None:
+                self.pause_start_time = current_time
