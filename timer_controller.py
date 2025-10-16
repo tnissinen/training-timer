@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import winsound
 from timer_model import TimerModel
 from phase_manager import PhaseManager
 from timer_view import TimerView
@@ -15,10 +16,14 @@ class TimerController:
         self.model = TimerModel()
         self.phase_manager = PhaseManager()
         self.view = TimerView(root)
+        self.sound_enabled = False  # Sound is disabled by default
 
         self.bind_events()
         self.update_view()
         self.update_button_states()
+
+        # Set initial sound button icon
+        self.view.sound_button.configure(text="🔇")
 
     def bind_events(self):
         """
@@ -30,12 +35,24 @@ class TimerController:
         self.view.load_button.configure(command=self.load_phases)
         self.view.generate_button.configure(command=self.generate_phases)
         self.view.fullscreen_button.configure(command=self.toggle_fullscreen)
+        self.view.sound_button.configure(command=self.toggle_sound)
+        self.view.edit_button.configure(command=self.view.toggle_edit_mode)
+
+        # Bind keyboard shortcuts (only when not in edit mode)
+        self.master.bind('<space>', lambda e: self.toggle_timer() if not self.view.edit_mode else None)
+        self.master.bind('<r>', lambda e: self.reset_timer() if not self.view.edit_mode else None)
+        self.master.bind('<R>', lambda e: self.reset_timer() if not self.view.edit_mode else None)
+        self.master.bind('<F11>', lambda e: self.toggle_fullscreen())
 
     def toggle_timer(self):
         """
         Toggles the timer between running and paused states.
         """
         if not self.model.running:
+            # Exit edit mode if active
+            if self.view.edit_mode:
+                self.view.toggle_edit_mode()
+
             # Update phase_manager.phases from current input fields before starting
             if hasattr(self.view, 'phase_inputs') and self.view.phase_inputs:
                 phases = self.view.get_phase_inputs()
@@ -65,6 +82,8 @@ class TimerController:
         self.update_view()
         self.update_button_states()
         self.view.update_timer_display("00:00", "white")
+        self.view.update_progress_bar(0)
+        self.view.update_current_phase_indicator(-1)  # Hide indicator when reset
 
         # Display first phase information after reset
         if len(self.phase_manager.phases) > 0:
@@ -139,6 +158,7 @@ class TimerController:
             if is_default:
                 self.phase_manager.generate_default_phases(num_phases)
             self.view.set_phase_inputs(self.phase_manager.phases[:num_phases])
+            self.view.update_entry_states()  # Set readonly/normal based on edit_mode
             self.update_view()
             self.update_button_states()
         except ValueError:
@@ -168,7 +188,15 @@ class TimerController:
             elapsed_time = self.model.get_elapsed_time()
             minutes, seconds = divmod(int(elapsed_time), 60)
             time_str = f"{minutes:02}:{seconds:02}"
-            self.view.update_timer_display(time_str, "dark green")
+            self.view.update_timer_display(time_str, "#00ff41")
+
+            # Update progress bar
+            if self.model.current_phase_duration > 0:
+                progress = min(elapsed_time / self.model.current_phase_duration, 1.0)
+                self.view.update_progress_bar(progress)
+
+            # Update current phase indicator in the list
+            self.view.update_current_phase_indicator(self.model.current_phase_index)
 
             # Update total time display
             total_elapsed_time = self.model.get_total_elapsed_time()
@@ -191,6 +219,7 @@ class TimerController:
                 self.model.next_phase()
                 if self.model.current_phase_index < len(self.phase_manager.phases):
                     self.model.current_phase_duration = self.get_current_phase_duration()
+                    self.play_sound()  # Play sound when phase changes
                     self.update_view()
                 else:
                     self.finish_timer()
@@ -202,9 +231,11 @@ class TimerController:
         Stops the timer and updates the display to indicate the timer has finished.
         """
         self.model.running = False
-        self.view.update_timer_color("dark red")
-        self.view.update_phase_display("Finished", "dark red")
+        self.play_sound()  # Play sound when timer finishes
+        self.view.update_timer_color("#ff0051")
+        self.view.update_phase_display("Finished", "#ff0051")
         self.view.update_button_states(False, len(self.phase_manager.phases) > 0)
+        self.view.update_current_phase_indicator(-1)  # Hide indicator when finished
 
     def update_view(self):
         """
@@ -213,7 +244,7 @@ class TimerController:
         if self.model.running:
             current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
             if current_phase:
-                self.view.update_phase_display(current_phase[0], "dark green")
+                self.view.update_phase_display(current_phase[0], "#00ff41")
                 minutes, seconds = divmod(self.model.current_phase_duration, 60)
                 self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
         else:
@@ -251,7 +282,7 @@ class TimerController:
 
     def validate_phases(self, phases):
         """
-        Validates the provided phases.
+        Validates the provided phases and shows error messages.
 
         Args:
             phases (list): A list of tuples containing phase names and times.
@@ -259,10 +290,15 @@ class TimerController:
         Returns:
             bool: True if all phases are valid, False otherwise.
         """
-        for name, time in phases:
-            if not name or not time:
+        for i, (name, time) in enumerate(phases):
+            if not name:
+                messagebox.showerror("Validation Error", f"Phase {i+1}: Name cannot be empty")
+                return False
+            if not time:
+                messagebox.showerror("Validation Error", f"Phase {i+1}: Time cannot be empty")
                 return False
             if not self.is_valid_time(time):
+                messagebox.showerror("Validation Error", f"Phase {i+1}: Invalid time format.\nUse MM:SS (e.g., 01:30 for 1 minute 30 seconds)")
                 return False
         return True
 
@@ -289,3 +325,25 @@ class TimerController:
         has_phases = len(self.phase_manager.phases) > 0
         is_running = self.model.running
         self.view.update_button_states(is_running, has_phases)
+
+    def play_sound(self):
+        """
+        Plays a system beep sound to notify the user.
+        """
+        if not self.sound_enabled:
+            return
+        try:
+            winsound.Beep(1000, 500)  # Frequency: 1000 Hz, Duration: 500 ms
+        except RuntimeError:
+            # If sound fails, silently continue
+            pass
+
+    def toggle_sound(self):
+        """
+        Toggles sound notifications on/off.
+        """
+        self.sound_enabled = not self.sound_enabled
+        if self.sound_enabled:
+            self.view.sound_button.configure(text="🔊")
+        else:
+            self.view.sound_button.configure(text="🔇")
