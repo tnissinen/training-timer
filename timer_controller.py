@@ -2,9 +2,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import winsound
 import time
+import os
 from timer_model import TimerModel
 from phase_manager import PhaseManager
 from timer_view import TimerView
+from settings_manager import SettingsManager
 
 class TimerController:
     def __init__(self, root):
@@ -17,17 +19,24 @@ class TimerController:
         self.model = TimerModel()
         self.phase_manager = PhaseManager()
         self.view = TimerView(root)
-        self.sound_enabled = False  # Sound is disabled by default
+        self.settings_manager = SettingsManager()
+
+        # Load sound setting from settings
+        self.sound_enabled = self.settings_manager.is_sound_enabled()
 
         # Set callback for when phases are changed in the view
         self.view.on_phases_changed_callback = self.bind_phase_jump_events
 
         self.bind_events()
+
+        # Load last program if it exists
+        self.load_settings_on_startup()
+
         self.update_view()
         self.update_button_states()
 
-        # Set initial sound button icon
-        self.view.sound_button.configure(text="🔇")
+        # Set sound button icon based on loaded setting
+        self.view.sound_button.configure(text="🔊" if self.sound_enabled else "🔇")
 
     def bind_events(self):
         """
@@ -55,6 +64,38 @@ class TimerController:
         if hasattr(self.view, 'phase_number_labels'):
             for i, label in enumerate(self.view.phase_number_labels):
                 label.bind("<Button-1>", lambda e, phase_idx=i: self.jump_to_phase(phase_idx))
+
+    def load_settings_on_startup(self):
+        """
+        Loads the last program file on startup if it exists.
+        """
+        last_program_file = self.settings_manager.get_last_program_file()
+        if last_program_file and os.path.exists(last_program_file):
+            if self.phase_manager.load_phases(last_program_file):
+                # Validate loaded phases
+                if self.validate_phases(self.phase_manager.phases):
+                    # Update UI with loaded phase count and generate inputs
+                    self.view.num_phases_entry.delete(0, tk.END)
+                    self.view.num_phases_entry.insert(0, str(len(self.phase_manager.phases)))
+                    self.generate_phases(is_default=False)
+
+                    # Reset timer after inputs are created
+                    self.model.reset()
+                    self.view.update_timer_display("00:00", "white")
+                    self.view.update_progress_bar(0, "white")
+                    self.view.update_global_progress_bar(0)
+                    self.view.update_current_phase_indicator(-1)
+
+                    # Display first phase information
+                    if len(self.phase_manager.phases) > 0:
+                        first_phase = self.phase_manager.get_phase(0)
+                        if first_phase:
+                            self.view.update_phase_display(first_phase[0], "white")
+                            minutes, seconds = map(int, first_phase[1].split(":"))
+                            self.view.update_current_phase_total_time(f"{minutes:02}:{seconds:02}", "white")
+                else:
+                    # If invalid, clear the setting
+                    self.settings_manager.set_last_program_file(None)
 
     def toggle_timer(self):
         """
@@ -129,6 +170,8 @@ class TimerController:
         if file_path:
             self.phase_manager.phases = phases
             self.phase_manager.save_phases(file_path)
+            # Save the file path to settings
+            self.settings_manager.set_last_program_file(file_path)
 
     def load_phases(self):
         """
@@ -141,6 +184,9 @@ class TimerController:
                 if not self.validate_phases(self.phase_manager.phases):
                     self.phase_manager.phases = []  # Clear invalid phases
                     return
+
+                # Save the file path to settings
+                self.settings_manager.set_last_program_file(file_path)
 
                 # Update UI with loaded phase count and generate inputs
                 self.view.num_phases_entry.delete(0, tk.END)
@@ -438,6 +484,8 @@ class TimerController:
         Toggles sound notifications on/off.
         """
         self.sound_enabled = not self.sound_enabled
+        # Save sound setting
+        self.settings_manager.set_sound_enabled(self.sound_enabled)
         if self.sound_enabled:
             self.view.sound_button.configure(text="🔊")
         else:

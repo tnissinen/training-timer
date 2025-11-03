@@ -8,9 +8,15 @@ A professional interval training timer application designed for managing multi-p
 ## Features
 
 - **Multi-Phase Workouts**: Create and manage unlimited workout phases with custom names and durations
-- **Visual Progress Tracking**: Large, easily readable timer display with real-time progress bar
+- **Visual Progress Tracking**:
+  - Large, easily readable timer display with real-time progress bar
+  - Global progress bar showing overall training completion
+  - Dynamic color feedback (green when running, white when paused)
 - **Audio Notifications**: Sound alerts when transitioning between phases (toggleable)
 - **Workout Persistence**: Save and load custom workout routines as JSON files
+- **Settings Persistence**: Automatically saves and restores:
+  - Last loaded training program (auto-loads on startup)
+  - Sound notification preferences
 - **Modern Dark UI**: Sleek interface built with CustomTkinter featuring neon green accents
 - **Keyboard Shortcuts**: Quick controls for efficient workout management
 - **Fullscreen Mode**: Distraction-free training experience
@@ -21,9 +27,10 @@ A professional interval training timer application designed for managing multi-p
 ## Screenshots
 
 The application features a 3-panel layout:
+- **Top**: Total time display with global progress bar
 - **Left**: Phase list with current phase indicator (▶)
-- **Center**: Large timer display (120pt font) with progress bar
-- **Right**: Control buttons (fullscreen, save, load, sound toggle)
+- **Center**: Large timer display (120pt font) with phase progress bar
+- **Right**: Control buttons (fullscreen, save, load, sound toggle, edit)
 
 ## Installation
 
@@ -78,6 +85,15 @@ python main.py
 5. Click **Generate Default Phases** to restore the 11 built-in phases
 6. Click **Save** to persist your workout routine
 
+### Settings Persistence
+
+The application automatically remembers your preferences:
+- **Last Workout Program**: When you save or load a workout, the file path is stored. Next time you launch the app, it automatically loads your last program.
+- **Sound Preferences**: Your sound on/off setting is saved and restored on startup.
+- **Settings Location**: Settings are stored in `settings.json` in the application directory.
+
+To reset settings, simply delete the `settings.json` file and restart the application.
+
 ### Phase Duration Format
 
 All phase durations must be in **MM:SS** format:
@@ -111,10 +127,13 @@ training-timer/
 ├── timer_view.py           # UI rendering (MVC View)
 ├── timer_controller.py     # Business logic (MVC Controller)
 ├── phase_manager.py        # Workout phase data management
+├── settings_manager.py     # Settings persistence manager
 ├── test_timer.py           # Unit tests
 ├── requirements.txt        # Python dependencies
 ├── README.md              # This file
-└── saved_phases.json      # Example workout routines
+├── .gitignore             # Git ignore patterns
+├── settings.json          # User settings (auto-generated, not in git)
+└── *.json                 # Saved workout routines
 ```
 
 ## Architecture
@@ -124,13 +143,16 @@ The application follows the **Model-View-Controller (MVC)** pattern:
 - **Model** (`TimerModel`): Manages timer state, elapsed time calculations, and phase tracking
 - **View** (`TimerView`): Handles UI rendering and user interface updates
 - **Controller** (`TimerController`): Coordinates Model and View, handles user input and business logic
-- **Helper** (`PhaseManager`): Manages workout phase data and JSON persistence
+- **Helpers**:
+  - `PhaseManager`: Manages workout phase data and JSON persistence
+  - `SettingsManager`: Handles application settings and user preferences
 
 This architecture provides:
 - Clean separation of concerns
 - Easy testing of individual components
 - Independent UI updates from timer logic
 - Isolated phase data management
+- Persistent user preferences across sessions
 
 ## Development
 
@@ -172,7 +194,9 @@ Colors can be customized in `timer_view.py`.
 
 Audio notifications use Windows `winsound.Beep()`. For cross-platform support, consider integrating libraries like `playsound` or `pygame.mixer`.
 
-## File Format
+## File Formats
+
+### Workout Routines
 
 Workout routines are saved as JSON files with the following structure:
 
@@ -188,6 +212,19 @@ Workout routines are saved as JSON files with the following structure:
   }
 ]
 ```
+
+### Settings File
+
+The application automatically creates and manages a `settings.json` file to persist user preferences:
+
+```json
+{
+  "last_program_file": "path/to/your/workout.json",
+  "sound_enabled": false
+}
+```
+
+**Note**: The settings file is user-specific and excluded from version control via `.gitignore`.
 
 ## Known Limitations
 
