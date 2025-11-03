@@ -78,6 +78,11 @@ class TimerController:
             self.master.after(100, self.update_timer)  # Schedule the next update
         else:
             self.model.pause()
+            # Set progress bar to white when paused
+            elapsed_time = self.model.get_elapsed_time()
+            if self.model.current_phase_duration > 0:
+                progress = min(elapsed_time / self.model.current_phase_duration, 1.0)
+                self.view.update_progress_bar(progress, "white")
         self.update_view()
 
     def reset_timer(self):
@@ -94,7 +99,8 @@ class TimerController:
         self.update_view()
         self.update_button_states()
         self.view.update_timer_display("00:00", "white")
-        self.view.update_progress_bar(0)
+        self.view.update_progress_bar(0, "white")
+        self.view.update_global_progress_bar(0)
         self.view.update_current_phase_indicator(-1)  # Hide indicator when reset
 
         # Display first phase information after reset
@@ -146,7 +152,8 @@ class TimerController:
                 self.update_view()
                 self.update_button_states()
                 self.view.update_timer_display("00:00", "white")
-                self.view.update_progress_bar(0)  # Reset progress bar
+                self.view.update_progress_bar(0, "white")  # Reset progress bar
+                self.view.update_global_progress_bar(0)  # Reset global progress bar
                 self.view.update_current_phase_indicator(-1)  # Hide indicator
 
                 # Display first phase information
@@ -219,8 +226,19 @@ class TimerController:
 
         # Update the view
         self.update_view()
-        self.view.update_progress_bar(0)  # Reset progress bar for new phase
+        progress_color = "#00ff41" if was_running else "white"
+        self.view.update_progress_bar(0, progress_color)  # Reset progress bar for new phase
         self.view.update_current_phase_indicator(phase_index)
+
+        # Update global progress bar based on jumped position
+        try:
+            total_time = sum(
+                int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
+            if total_time > 0:
+                global_progress = min(elapsed_before_phase / total_time, 1.0)
+                self.view.update_global_progress_bar(global_progress)
+        except (ValueError, IndexError):
+            pass
 
         # Display the current phase information
         current_phase = self.phase_manager.get_phase(self.model.current_phase_index)
@@ -260,10 +278,10 @@ class TimerController:
             time_str = f"{minutes:02}:{seconds:02}"
             self.view.update_timer_display(time_str, "#00ff41")
 
-            # Update progress bar
+            # Update progress bar with green color when running
             if self.model.current_phase_duration > 0:
                 progress = min(elapsed_time / self.model.current_phase_duration, 1.0)
-                self.view.update_progress_bar(progress)
+                self.view.update_progress_bar(progress, "#00ff41")
 
             # Update current phase indicator in the list
             self.view.update_current_phase_indicator(self.model.current_phase_index)
@@ -280,6 +298,11 @@ class TimerController:
                         int(time.split(":")[0]) * 60 + int(time.split(":")[1]) for _, time in self.phase_manager.phases)
                     total_minutes, total_seconds = divmod(total_time, 60)
                     total_time_str = f"{total_minutes:02}:{total_seconds:02}"
+
+                    # Update global progress bar
+                    if total_time > 0:
+                        global_progress = min(total_elapsed_time / total_time, 1.0)
+                        self.view.update_global_progress_bar(global_progress)
                 except (ValueError, IndexError):
                     total_time_str = "00:00"
 

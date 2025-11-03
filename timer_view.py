@@ -47,6 +47,13 @@ class TimerView:
                                              font=self.total_time_font, text_color=self.text_color)
         self.total_time_label.pack()
 
+        # Global progress bar below total time
+        self.global_progress_bar = ctk.CTkProgressBar(self.total_time_frame, width=600, height=15,
+                                                      corner_radius=10, fg_color="#2a2a2a",
+                                                      progress_color=self.text_color)
+        self.global_progress_bar.pack(pady=(15, 0))
+        self.global_progress_bar.set(0)
+
         # Main content frame to hold left panel and center content
         self.main_content_frame = ctk.CTkFrame(self.master, fg_color="transparent")
         self.main_content_frame.pack(fill=ctk.BOTH, expand=True, padx=20, pady=10)
@@ -104,7 +111,7 @@ class TimerView:
         # Progress bar for current phase
         self.progress_bar = ctk.CTkProgressBar(self.current_phase_frame, width=400, height=20,
                                                corner_radius=10, fg_color="#2a2a2a",
-                                               progress_color=self.accent_color)
+                                               progress_color=self.text_color)
         self.progress_bar.pack(pady=(20, 0))
         self.progress_bar.set(0)
 
@@ -200,14 +207,26 @@ class TimerView:
 
         self.current_phase_total_time_label.configure(text=f"/{time_str}", text_color=color)
 
-    def update_progress_bar(self, progress):
+    def update_progress_bar(self, progress, color=None):
         """
         Updates the progress bar with the given progress value.
 
         Args:
             progress (float): Progress value between 0.0 and 1.0
+            color (str): Optional color for the progress bar
         """
         self.progress_bar.set(progress)
+        if color:
+            self.progress_bar.configure(progress_color=color)
+
+    def update_global_progress_bar(self, progress):
+        """
+        Updates the global progress bar with the given progress value.
+
+        Args:
+            progress (float): Progress value between 0.0 and 1.0
+        """
+        self.global_progress_bar.set(progress)
 
     def update_current_phase_indicator(self, phase_index):
         """
