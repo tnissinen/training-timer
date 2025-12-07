@@ -1,0 +1,78 @@
+[
+  {
+    "name": "L\u00e4mmittely",
+    "time": "01:00"
+  },
+  {
+    "name": "Etuheilautus",
+    "time": "02:00"
+  },
+  {
+    "name": "Rinnalleveto",
+    "time": "02:00"
+  },
+  {
+    "name": "Puolitempaus",
+    "time": "02:00"
+  },
+  {
+    "name": "Tempaus",
+    "time": "02:00"
+  },
+  {
+    "name": "Punnerrus",
+    "time": "02:00"
+  },
+  {
+    "name": "Vauhtipunnerrus",
+    "time": "02:00"
+  },
+  {
+    "name": "Työntö",
+    "time": "02:00"
+  },
+  {
+    "name": "Tempaus 1",
+    "time": "02:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 2",
+    "time": "02:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 3",
+    "time": "02:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 4",
+    "time": "02:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 5",
+    "time": "02:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Loppuverryttely",
+    "time": "01:00"
+  }
+]

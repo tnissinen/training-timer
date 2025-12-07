@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Lämmittely",
+    "time": "02:00"
+  },
+  {
+    "name": "Rinnalleveto 16kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Vauhtipunnerrus 12kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "OAJ 16kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 12kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "Tempaus 16kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Tauko",
+    "time": "01:00"
+  },
+  {
+    "name": "OAJ 16kg",
+    "time": "04:00"
+  },
+  {
+    "name": "Loppuverryttely",
+    "time": "01:00"
+  }
+]
