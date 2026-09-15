@@ -1,5 +1,30 @@
 import customtkinter as ctk
 
+# Keep Tk-style color access compatible with the legacy tests and code paths.
+_original_ctk_label_cget = ctk.CTkLabel.cget
+_original_ctk_label_configure = ctk.CTkLabel.configure
+
+
+def _compat_cget(self, option):
+    if option == "fg":
+        option = "text_color"
+    elif option == "bg":
+        option = "fg_color"
+    return _original_ctk_label_cget(self, option)
+
+
+def _compat_configure(self, **kwargs):
+    if "fg" in kwargs:
+        kwargs["text_color"] = kwargs.pop("fg")
+    if "bg" in kwargs:
+        kwargs["fg_color"] = kwargs.pop("bg")
+    return _original_ctk_label_configure(self, **kwargs)
+
+
+ctk.CTkLabel.cget = _compat_cget
+ctk.CTkLabel.configure = _compat_configure
+
+
 class TimerView:
     def __init__(self, master):
         """
@@ -9,7 +34,7 @@ class TimerView:
             master (tk.Tk): The main window of the application.
         """
         self.master = master
-        self.master.title("Exercise Timer")
+        self.master.title("Training Timer")
         self.master.state('zoomed')
 
         # Modern color scheme

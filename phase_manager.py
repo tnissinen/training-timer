@@ -51,7 +51,7 @@ class PhaseManager:
         """
         try:
             phases_data = [{"name": name, "time": time} for name, time in self.phases]
-            with open(file_path, "w", encoding="utf-8") as f:
+            with open(file_path, "w") as f:
                 json.dump(phases_data, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:

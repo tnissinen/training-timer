@@ -158,12 +158,11 @@ class TimerController:
         """
         Saves the phases to a JSON file.
         """
-        # Check if phase inputs exist
-        if not hasattr(self.view, 'phase_inputs') or not self.view.phase_inputs:
+        if not hasattr(self.view, 'get_phase_inputs'):
             return
 
         phases = self.view.get_phase_inputs()
-        if not self.validate_phases(phases):
+        if not phases or not self.validate_phases(phases):
             return
 
         file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])

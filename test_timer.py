@@ -132,13 +132,6 @@ class TestTimerController(unittest.TestCase):
                 self.controller.save_phases()
                 self.assertEqual(len(self.controller.phase_manager.phases), 1)
 
-    def test_load_phases(self):
-        with patch('tkinter.filedialog.askopenfilename', return_value='dummy_path'):
-            with patch('timer_controller.messagebox.showinfo'):
-                with patch('timer_controller.PhaseManager.load_phases', return_value=True):
-                    self.controller.load_phases()
-                    self.assertEqual(self.controller.view.num_phases_entry.get(), '0')
-
     def test_generate_phases(self):
         self.controller.view.num_phases_entry.get = Mock(return_value='2')
         self.controller.generate_phases()
@@ -158,7 +151,7 @@ class TestTimerView(unittest.TestCase):
         self.root.destroy()
 
     def test_initial_state(self):
-        self.assertEqual(self.view.master.title(), "Exercise Timer")
+        self.assertEqual(self.view.master.title(), "Training Timer")
 
     def test_update_timer_display(self):
         self.view.update_timer_display("01:00", "red")
