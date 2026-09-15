@@ -12,7 +12,7 @@ Warning: This project is completely vibe coded using Claude Code and GitHub Copi
 
 - Multiple workout phases with names and durations
 - Start, pause, reset, and phase-jump controls
-- Save and load workout routines as JSON files
+- Save and load workout routines as JSON files (see sample_exercise.json)
 - Persistent sound setting and last used program
 - Fullscreen mode and editable phase list
 
@@ -49,6 +49,7 @@ training-timer/
 ├── settings_manager.py         # Persists settings such as sound state and last program path
 ├── test_timer.py               # Unit tests for timer, phase, and view behavior
 ├── settings.json               # User settings file created at runtime
+├── sample_exercise.json        # Sample workout routine file
 ├── screenshot.png              # UI screenshot shown in this README
 └── *.json                      # Saved workout routines and exported program files
 ```
@@ -61,7 +62,7 @@ python -m unittest -q
 
 ## Notes
 
-- Workout routines are stored as JSON objects with `name` and `time` fields.
+- Workout routines are stored as JSON objects with `name` and `time` fields (see sample_exercise.json).
 - Settings are stored in `settings.json` and include the last loaded program and sound preference.
 {
   "last_program_file": "path/to/your/workout.json",
